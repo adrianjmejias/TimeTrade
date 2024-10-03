@@ -31,7 +31,7 @@
     "start_window": "background",
     "windows": {
       "background": {
-        "file": "Files/index.html",
+        "file": "index.html",
         "background_optimization": false,
         "is_background_page": true
       },
