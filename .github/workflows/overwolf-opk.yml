@@ -1,0 +1,87 @@
+name: 🚀 Build APP and release Overwolf OPK
+
+on:
+  push:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - name: ⚙️ Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+
+      - name: 🧱 Install dependencies
+        run: npm install
+
+      - name: 📰 Semantic Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+
+      - name: 🚧 Pre Build
+        run: npm run pre-build
+
+      - name: 🛠️ Build
+        run: npm run build
+
+      - name: 📦 Compression files
+        id: pack
+        run: npm run package-overwolf
+
+      - name: ☁️ Upload to Overwolf
+        run: |
+          echo "Uploading to Overwolf"
+          npm i -g @overwolf/ow-cli
+          ow opk pack build/
+          ow opk sign build/*.opk
+          ow opk release $(ow opk upload build/*.signed.opk -c ${{ vars.PRE_RELEASE_CHANNEL }} -w) -c ${{ vars.PRE_RELEASE_CHANNEL }} -p 100
+
+        env:
+          OW_CLI_EMAIL: ${{ secrets.OW_CLI_EMAIL }}
+          OW_CLI_API_KEY: ${{ secrets.OW_CLI_API_KEY }}
+          PRE_RELEASE_CHANNEL: ${{ vars.PRE_RELEASE_CHANNEL }}
+
+      - name: 📦 Read Current Version
+        id: read_current_version
+        run: |
+          tag=$(git describe --tags $(git rev-list --tags --max-count=1))
+          version_numbers=$(echo "$tag" | sed 's/[^0-9.]*//g')
+          echo "current version $tag numbers $version_numbers"
+          echo "full_version=$tag" >> $GITHUB_OUTPUT
+          echo "version=$version_numbers" >> $GITHUB_OUTPUT
+
+      - name: 🛎️ Create release
+        run: |
+          gh release edit ${{ env.RELEASE_VERSION }} -t "${{ env.NAME }}" 
+          echo "${{env.RELEASE_VERSION}}"
+          gh release upload ${{ env.RELEASE_VERSION }} ${{ env.FILES }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NAME: "Overwolf Modern React Boilerplate ${{steps.read_current_version.outputs.full_version}}"
+          FILES: build/Overwolf\ Modern\ React\ Boilerplate-v4_${{steps.read_current_version.outputs.version}}.signed.opk unpacked_extension.${{steps.read_current_version.outputs.full_version}}.zip
+          RELEASE_VERSION: ${{ steps.read_current_version.outputs.full_version }}
+
+  create-github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Create Release Notes
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const { version } = require('./package.json');
+            const { data: {name, body} } = await github.request(`POST /repos/${{ github.repository }}/releases/generate-notes`, {
+              tag_name: `v${version}`
+            });
