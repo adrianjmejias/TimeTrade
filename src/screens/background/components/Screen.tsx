@@ -6,7 +6,10 @@ import {
 } from "app/shared/constants";
 import { useGameEventProvider, useWindow } from "overwolf-hooks";
 import { useCallback, useEffect } from "react";
-import { HEARTHSTONE_CLASS_ID, getHearthstoneGame } from "lib/games";
+import {
+  LEAGUE_OF_LEGENDS_GAME_CLASS_ID,
+  getLeagueOfLegendsGame,
+} from "lib/games";
 import { setInfo, setEvent } from "../stores/background";
 import store from "app/shared/store";
 import { log } from "lib/log";
@@ -42,8 +45,8 @@ const BackgroundWindow = () => {
       //if the desktop or ingame window is not ready we don't want to start the app
       if (!desktop || !ingame) return;
       log(reason, "src/screens/background/components/Screen.tsx", "startApp");
-      const hearthstone = await getHearthstoneGame();
-      if (hearthstone) {
+      const leagueOfLegends = await getLeagueOfLegendsGame();
+      if (leagueOfLegends) {
         await Promise.all([start(), ingame?.restore(), desktop?.minimize()]);
       } else {
         await Promise.all([stop(), desktop?.restore()]);
@@ -57,7 +60,7 @@ const BackgroundWindow = () => {
     overwolf.games.onGameInfoUpdated.addListener(async (event) => {
       if (
         event.runningChanged &&
-        event.gameInfo?.classId === HEARTHSTONE_CLASS_ID
+        event.gameInfo?.classId === LEAGUE_OF_LEGENDS_GAME_CLASS_ID
       ) {
         startApp("onGameInfoUpdated");
       }

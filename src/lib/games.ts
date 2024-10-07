@@ -1,10 +1,24 @@
 export const HEARTHSTONE_CLASS_ID = 9898;
+export const LEAGUE_OF_LEGENDS_GAME_CLASS_ID = 5426;
+export const LEAGUE_OF_LEGENDS_CLIENT_CLASS_ID = 10902;
 
 export function getHearthstoneGame(): Promise<overwolf.games.GetRunningGameInfoResult | null> {
   return new Promise((resolve) => {
     overwolf.games.getRunningGameInfo((result) => {
       resolve(
-        result && result.classId === HEARTHSTONE_CLASS_ID ? result : null,
+        result && result.classId === HEARTHSTONE_CLASS_ID ? result : null
+      );
+    });
+  });
+}
+
+export function getLeagueOfLegendsGame(): Promise<overwolf.games.GetRunningGameInfoResult | null> {
+  return new Promise((resolve) => {
+    overwolf.games.getRunningGameInfo((result) => {
+      resolve(
+        result && result.classId === LEAGUE_OF_LEGENDS_GAME_CLASS_ID
+          ? result
+          : null
       );
     });
   });
